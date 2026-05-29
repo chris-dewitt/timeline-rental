@@ -59,16 +59,27 @@ copy .env.example .env
 python -m timeline_rental
 ```
 
-**Week 1 ships:** rain-soaked alley → examiner's room → photo observation → quantum collapse → multiverse receipt saved to SQLite.
+**Week 2 ships:** video store hub, receipt gallery, Ollama collapse narration + clerk fragments (with fallbacks).
+
+### Ollama (optional but recommended)
+
+```bash
+ollama pull llama3.2
+ollama serve
+```
 
 ### Controls
 
 | Key | Action |
 |-----|--------|
+| **Store** | |
+| E | Insert **blade runner [damaged]** |
+| G | Receipt gallery (browse past collapses) |
+| **Tape** | |
 | Arrow keys | Walk |
 | E | Interact (doorway, photo) |
 | 1 / 2 | Dialogue choices |
-| Space / Enter | Skip typewriter text |
+| Space / Enter | Skip typewriter / return to store |
 | R | Rent again (from receipt) |
 | Q | Quit |
 

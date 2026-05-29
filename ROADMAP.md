@@ -18,16 +18,16 @@ Playable every week. Atmosphere non-negotiable.
 
 ---
 
-## Week 2 — *The store*
+## Week 2 — *The store* ✓
 
 **Goal:** Hub between runs. Multiverse receipt. Replay value.
 
 | Task | Done when |
 |------|-----------|
-| Timeline Rental hub scene | Insert tape → alley scene |
-| Multiverse receipt screen after collapse | Lost timelines listed |
-| Ollama narration for collapse + store fragments | Local, offline |
-| Save multiple runs — gallery of receipts | SQLite history |
+| Timeline Rental hub scene | ✓ insert tape → intro → alley |
+| Multiverse receipt screen | ✓ lost timelines + \|ψ⟩ bitstring |
+| Ollama narration for collapse + store fragments | ✓ with fallbacks |
+| Save multiple runs — gallery of receipts | ✓ [G] gallery in store |
 
 ---
 

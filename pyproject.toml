@@ -13,6 +13,7 @@ dependencies = [
   "qiskit>=1.0",
   "qiskit-aer>=0.13",
   "python-dotenv>=1.0",
+  "httpx>=0.27",
 ]
 
 [project.scripts]

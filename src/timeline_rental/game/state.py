@@ -16,3 +16,6 @@ class GameState:
     photo_label: str = ""
     run_id: int | None = None
     flash_frames: int = 0
+    clerk_fragment: str = ""
+    narration_source: str = "fallback"
+    clerk_source: str = "fallback"

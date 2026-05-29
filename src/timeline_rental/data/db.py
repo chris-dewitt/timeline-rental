@@ -42,10 +42,15 @@ def init_db() -> None:
                 narration TEXT NOT NULL,
                 receipt_line TEXT NOT NULL,
                 lost_timelines TEXT NOT NULL,
-                photo_label TEXT NOT NULL
+                photo_label TEXT NOT NULL,
+                clerk_fragment TEXT NOT NULL DEFAULT ''
             )
             """
         )
+        try:
+            conn.execute("ALTER TABLE runs ADD COLUMN clerk_fragment TEXT NOT NULL DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass
         conn.commit()
 
 
@@ -56,8 +61,9 @@ def save_run(record: dict[str, Any]) -> int:
             """
             INSERT INTO runs (
                 created_at, tape, choice_history, outcome_index,
-                measured_bitstring, narration, receipt_line, lost_timelines, photo_label
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                measured_bitstring, narration, receipt_line, lost_timelines,
+                photo_label, clerk_fragment
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 datetime.now(timezone.utc).isoformat(),
@@ -69,6 +75,7 @@ def save_run(record: dict[str, Any]) -> int:
                 record["receipt_line"],
                 json.dumps(record["lost_timelines"]),
                 record["photo_label"],
+                record.get("clerk_fragment", ""),
             ),
         )
         conn.commit()
@@ -83,6 +90,19 @@ def latest_run() -> dict[str, Any] | None:
         ).fetchone()
     if row is None:
         return None
+    return _row_to_dict(row)
+
+
+def get_run(run_id: int) -> dict[str, Any] | None:
+    init_db()
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone()
+    if row is None:
+        return None
+    return _row_to_dict(row)
+
+
+def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
     return {
         "id": row["id"],
         "created_at": row["created_at"],
@@ -94,6 +114,7 @@ def latest_run() -> dict[str, Any] | None:
         "receipt_line": row["receipt_line"],
         "lost_timelines": json.loads(row["lost_timelines"]),
         "photo_label": row["photo_label"],
+        "clerk_fragment": row["clerk_fragment"] if "clerk_fragment" in row.keys() else "",
     }
 
 
@@ -101,7 +122,18 @@ def list_runs(limit: int = 10) -> list[dict[str, Any]]:
     init_db()
     with connect() as conn:
         rows = conn.execute(
-            "SELECT id, created_at, tape, receipt_line, outcome_index FROM runs ORDER BY id DESC LIMIT ?",
+            """
+            SELECT id, created_at, tape, receipt_line, outcome_index,
+                   measured_bitstring, photo_label, clerk_fragment
+            FROM runs ORDER BY id DESC LIMIT ?
+            """,
             (limit,),
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+def run_count() -> int:
+    init_db()
+    with connect() as conn:
+        row = conn.execute("SELECT COUNT(*) AS c FROM runs").fetchone()
+    return int(row["c"]) if row else 0

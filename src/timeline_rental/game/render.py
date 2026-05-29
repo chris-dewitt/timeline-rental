@@ -158,3 +158,56 @@ def draw_collapse_flash(surface: pygame.Surface, strength: float) -> None:
     alpha = int(220 * strength)
     overlay.fill((255, 154, 60, alpha))
     surface.blit(overlay, (0, 0))
+
+
+def draw_store(surface: pygame.Surface, mono: pygame.font.Font, frame: int, flicker: bool) -> None:
+    surface.fill((9, 9, 14))
+    # shelves
+    for sx in (8, 88, 168, 248):
+        pygame.draw.rect(surface, (20, 20, 30), (sx, 36, 56, 100))
+        pygame.draw.rect(surface, SMOG_GRAY, (sx, 36, 56, 100), 1)
+    # CRT static
+    static_color = WET_WHITE if frame % 5 < 2 else SMOG_GRAY
+    pygame.draw.rect(surface, (14, 14, 20), (108, 52, 104, 58))
+    pygame.draw.rect(surface, static_color, (112, 56, 96, 50), 1)
+    for _ in range(18):
+        px = 112 + (_ * 17 + frame * 3) % 96
+        py = 58 + (_ * 11 + frame * 5) % 46
+        pygame.draw.line(surface, (40, 50, 60), (px, py), (px + 4, py), 1)
+    # glowing tape
+    glow = NEON_CYAN if flicker else REPLICANT_AMBER
+    pygame.draw.rect(surface, (18, 18, 28), (12, 48, 48, 14))
+    pygame.draw.rect(surface, glow, (12, 48, 48, 14), 1)
+    tape_label = mono.render("BLADE RUNNER", True, glow)
+    surface.blit(tape_label, (14, 50))
+    dmg = mono.render("[damaged]", True, REPLICANT_AMBER)
+    surface.blit(dmg, (14, 58))
+    # locked tapes
+    for i, name in enumerate(("CASABLANCA", "VERTIGO")):
+        y = 68 + i * 18
+        label = mono.render(name, True, SMOG_GRAY)
+        surface.blit(label, (178, y))
+        lock = mono.render("[missing]", True, (50, 55, 65))
+        surface.blit(lock, (178, y + 8))
+    # sign
+    sign = mono.render("TIMELINE RENTAL", True, NEON_CYAN if flicker else NEON_DIM)
+    surface.blit(sign, (INTERNAL_W // 2 - sign.get_width() // 2, 8))
+    open_label = mono.render("OPEN 24h (maybe)", True, SMOG_GRAY)
+    surface.blit(open_label, (INTERNAL_W // 2 - open_label.get_width() // 2, 18))
+
+
+def wrap_text(text: str, width: int) -> list[str]:
+    words = text.split()
+    lines: list[str] = []
+    current = ""
+    for word in words:
+        candidate = f"{current} {word}".strip()
+        if len(candidate) <= width:
+            current = candidate
+        else:
+            if current:
+                lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return lines
