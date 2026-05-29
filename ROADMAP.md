@@ -4,19 +4,17 @@ Playable every week. Atmosphere non-negotiable.
 
 ---
 
-## Week 1 — *Insert tape*
+## Week 1 — *Insert tape* ✓
 
 **Goal:** Boot game → walk one scene → make one choice → see one collapse.
 
 | Task | Done when |
 |------|-----------|
-| Pygame window — rain, neon alley, player dot/sprite | 320×180 scaled, feels noir |
-| One room, one NPC, one choice (2 options) | Keyboard walk + interact |
-| Qiskit collapse picks outcome from superposed state | Not `random.choice` |
-| Amber collapse flash + narration text | Matches DESIGN.md |
-| SQLite save — one collapsed timeline | Reload shows receipt |
-
-**Scope:** 10–15 minutes of playable content. One observation event.
+| Pygame window — rain, neon alley, player dot/sprite | ✓ 320×180 scaled |
+| One room, one NPC, one choice (2 options) | ✓ alley + examiner |
+| Qiskit collapse picks outcome from superposed state | ✓ `quantum/collapse.py` |
+| Amber collapse flash + narration text | ✓ 3-frame flash |
+| SQLite save — one collapsed timeline | ✓ `data/db.py` + receipt |
 
 ---
 

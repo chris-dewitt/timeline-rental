@@ -43,7 +43,7 @@ ollama pull llama3.2
 
 ---
 
-## Quick start (once Week 1 lands)
+## Quick start
 
 ```bash
 git clone https://github.com/chris-dewitt/timeline-rental.git
@@ -53,11 +53,24 @@ python -m venv .venv
 # Windows
 .venv\Scripts\activate
 
-pip install -r requirements.txt
-cp .env.example .env
+pip install -e .
+copy .env.example .env
 
 python -m timeline_rental
 ```
+
+**Week 1 ships:** rain-soaked alley → examiner's room → photo observation → quantum collapse → multiverse receipt saved to SQLite.
+
+### Controls
+
+| Key | Action |
+|-----|--------|
+| Arrow keys | Walk |
+| E | Interact (doorway, photo) |
+| 1 / 2 | Dialogue choices |
+| Space / Enter | Skip typewriter text |
+| R | Rent again (from receipt) |
+| Q | Quit |
 
 ---
 
