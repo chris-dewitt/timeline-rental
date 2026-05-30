@@ -31,16 +31,16 @@ Playable every week. Atmosphere non-negotiable.
 
 ---
 
-## Week 3 — *Damaged tape*
+## Week 3 — *Damaged tape* ✓
 
 **Goal:** Blade Runner v1 full loop — photo, test, three collapses.
 
 | Task | Done when |
 |------|-----------|
-| Photo observation event — image shifts pre-collapse | Quantum seed drives variant |
-| Voight-Kampff pastiche scene | Dialogue from Ollama + curated fallbacks |
-| 3 distinct collapsed endings | Meaningfully different receipts |
-| `TIMELINES: N active` UI counter | Player sees multiverse state |
+| Photo observation — image shifts pre-collapse | ✓ quantum `photo_superposition` |
+| Voight-Kampff pastiche scene | ✓ 3 questions, Ollama + fallbacks |
+| 3 distinct collapsed endings | ✓ TIMELINE A / B / C titles |
+| `TIMELINES: N active` UI counter | ✓ intro, alley, room |
 
 ---
 

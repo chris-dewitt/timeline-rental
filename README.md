@@ -59,14 +59,7 @@ copy .env.example .env
 python -m timeline_rental
 ```
 
-**Week 2 ships:** video store hub, receipt gallery, Ollama collapse narration + clerk fragments (with fallbacks).
-
-### Ollama (optional but recommended)
-
-```bash
-ollama pull llama3.2
-ollama serve
-```
+**Week 3 ships:** full damaged tape — 3 Voight-Kampff questions, quantum photo superposition, 3 distinct endings.
 
 ### Controls
 
@@ -78,8 +71,8 @@ ollama serve
 | **Tape** | |
 | Arrow keys | Walk |
 | E | Interact (doorway, photo) |
-| 1 / 2 | Dialogue choices |
-| Space / Enter | Skip typewriter / return to store |
+| 1 / 2 | Voight-Kampff choices (×3 questions) |
+| Space | Continue after examiner response |
 | R | Rent again (from receipt) |
 | Q | Quit |
 

@@ -43,14 +43,19 @@ def init_db() -> None:
                 receipt_line TEXT NOT NULL,
                 lost_timelines TEXT NOT NULL,
                 photo_label TEXT NOT NULL,
-                clerk_fragment TEXT NOT NULL DEFAULT ''
+                clerk_fragment TEXT NOT NULL DEFAULT '',
+                ending_title TEXT NOT NULL DEFAULT ''
             )
             """
         )
-        try:
-            conn.execute("ALTER TABLE runs ADD COLUMN clerk_fragment TEXT NOT NULL DEFAULT ''")
-        except sqlite3.OperationalError:
-            pass
+        for col, typedef in (
+            ("clerk_fragment", "TEXT NOT NULL DEFAULT ''"),
+            ("ending_title", "TEXT NOT NULL DEFAULT ''"),
+        ):
+            try:
+                conn.execute(f"ALTER TABLE runs ADD COLUMN {col} {typedef}")
+            except sqlite3.OperationalError:
+                pass
         conn.commit()
 
 
@@ -62,8 +67,8 @@ def save_run(record: dict[str, Any]) -> int:
             INSERT INTO runs (
                 created_at, tape, choice_history, outcome_index,
                 measured_bitstring, narration, receipt_line, lost_timelines,
-                photo_label, clerk_fragment
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                photo_label, clerk_fragment, ending_title
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 datetime.now(timezone.utc).isoformat(),
@@ -76,6 +81,7 @@ def save_run(record: dict[str, Any]) -> int:
                 json.dumps(record["lost_timelines"]),
                 record["photo_label"],
                 record.get("clerk_fragment", ""),
+                record.get("ending_title", ""),
             ),
         )
         conn.commit()
@@ -115,6 +121,7 @@ def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
         "lost_timelines": json.loads(row["lost_timelines"]),
         "photo_label": row["photo_label"],
         "clerk_fragment": row["clerk_fragment"] if "clerk_fragment" in row.keys() else "",
+        "ending_title": row["ending_title"] if "ending_title" in row.keys() else "",
     }
 
 

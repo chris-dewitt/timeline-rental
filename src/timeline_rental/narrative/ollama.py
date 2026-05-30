@@ -89,3 +89,30 @@ def generate_clerk_fragment(
 
     idx = (returns_count + len(last_receipt)) % len(CLERK_FALLBACKS)
     return {"text": CLERK_FALLBACKS[idx], "generated": False, "source": "fallback"}
+
+
+EXAMINER_FALLBACKS = [
+    "Certainty is a luxury. In this city, it's usually rented.",
+    "Interesting. Most people lie about the wasp. You didn't.",
+    "The test isn't about the phone. It's about how many versions of you reached for it.",
+]
+
+
+def generate_examiner_response(
+    *,
+    scene_context: str,
+    player_choice: str,
+    question_index: int,
+) -> dict[str, str | bool]:
+    prompt = _load_prompt("examiner.txt").format(
+        scene_context=scene_context,
+        player_choice=player_choice,
+    )
+    raw = _ollama_generate(prompt, timeout=12.0)
+    if raw:
+        cleaned = _clean_line(raw, max_len=140)
+        if len(cleaned) > 16:
+            return {"text": cleaned, "generated": True, "source": "ollama"}
+
+    fb = EXAMINER_FALLBACKS[question_index % len(EXAMINER_FALLBACKS)]
+    return {"text": fb, "generated": False, "source": "fallback"}

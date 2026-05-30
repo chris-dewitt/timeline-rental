@@ -19,3 +19,6 @@ class GameState:
     clerk_fragment: str = ""
     narration_source: str = "fallback"
     clerk_source: str = "fallback"
+    ending_title: str = ""
+    photo_weights: tuple[float, float, float] = (0.33, 0.33, 0.34)
+    examiner_step: int = 0

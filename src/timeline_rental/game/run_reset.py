@@ -21,3 +21,6 @@ def reset_run(state: GameState) -> None:
     state.flash_frames = 0
     state.narration_source = "fallback"
     state.clerk_source = "fallback"
+    state.ending_title = ""
+    state.photo_weights = (0.33, 0.33, 0.34)
+    state.examiner_step = 0

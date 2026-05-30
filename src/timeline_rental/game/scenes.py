@@ -19,14 +19,20 @@ from timeline_rental.game.run_reset import reset_run
 from timeline_rental.game.state import GameState
 from timeline_rental.narrative.content import (
     ALLEY_HINT,
-    CHOICE_LABELS,
-    EXAMINER_LINES,
+    DEJA_VU_LINES,
+    EXAMINER_QUESTIONS,
     INTRO_LINES,
     OUTCOME_BUNDLES,
-    ROOM_HINT,
+    PHOTO_HINT,
+    SESSIONS_GRAFFITI,
 )
-from timeline_rental.narrative.ollama import generate_clerk_fragment, generate_collapse_narration
+from timeline_rental.narrative.ollama import (
+    generate_clerk_fragment,
+    generate_collapse_narration,
+    generate_examiner_response,
+)
 from timeline_rental.quantum.collapse import collapse_timeline
+from timeline_rental.quantum.photo import photo_superposition
 
 
 class StoreScene:
@@ -169,6 +175,7 @@ class IntroScene:
     def draw(self, canvas, mono, serif, rain, flicker: bool) -> None:
         draw_alley(canvas)
         rain.draw(canvas)
+        draw_timeline_hud(canvas, mono, 3)
         draw_dialogue_box(canvas, mono, serif, self.writer.visible_text(), y=60)
 
 
@@ -201,8 +208,9 @@ class AlleyScene:
     def draw(self, canvas, mono, serif, rain, flicker: bool) -> None:
         import pygame
 
-        draw_alley(canvas)
+        draw_alley(canvas, SESSIONS_GRAFFITI)
         draw_neon_sign(canvas, mono, "NEXUS REPAIR", flicker)
+        draw_timeline_hud(canvas, mono, 3)
         pygame.draw.rect(canvas, (30, 40, 55), (270, 90, 30, 50))
         pygame.draw.rect(canvas, (0, 80, 90), (278, 110, 14, 28))
         draw_player(canvas, self.player_x, self.player_y)
@@ -215,16 +223,36 @@ class RoomScene:
 
     def __init__(self) -> None:
         self.phase = "question"
-        self.writer = Typewriter([EXAMINER_LINES[0]], chars_per_sec=24)
+        self.question_index = 0
+        self.writer: Typewriter | None = None
         self.response_writer: Typewriter | None = None
         self.develop_writer: Typewriter | None = None
         self.frame = 0
         self.pending_collapse = False
         self.collapse_delay = 0.0
+        self.initialized = False
+        self._last_weights = (0.33, 0.33, 0.34)
+        self._start_question()
+
+    def _start_question(self) -> None:
+        q = EXAMINER_QUESTIONS[self.question_index]
+        self.writer = Typewriter([q["question"]], chars_per_sec=24)
+        self.response_writer = None
+        self.phase = "question"
+
+    def _ensure_photo_state(self, state: GameState) -> None:
+        if not self.initialized:
+            sup = photo_superposition(state.seed)
+            state.photo_weights = sup.weights
+            self._last_weights = sup.weights
+            state.timelines_active = 3
+            self.initialized = True
 
     def update(self, dt: float, state: GameState) -> str | None:
         self.frame += 1
-        self.writer.update(dt)
+        self._ensure_photo_state(state)
+        if self.writer:
+            self.writer.update(dt)
         if self.response_writer:
             self.response_writer.update(dt)
         if self.develop_writer:
@@ -260,6 +288,7 @@ class RoomScene:
         state.narration = str(narration["text"])
         state.narration_source = str(narration["source"])
         state.receipt_line = bundle["receipt_line"]
+        state.ending_title = bundle["ending_title"]
         state.lost_timelines = bundle["lost"]
         state.photo_label = bundle["photo_label"]
         state.clerk_fragment = str(clerk["text"])
@@ -274,12 +303,22 @@ class RoomScene:
                 "measured_bitstring": result.measured_bitstring,
                 "narration": state.narration,
                 "receipt_line": bundle["receipt_line"],
+                "ending_title": bundle["ending_title"],
                 "lost_timelines": bundle["lost"],
                 "photo_label": bundle["photo_label"],
                 "clerk_fragment": state.clerk_fragment,
             }
         )
         return "receipt"
+
+    def _advance_after_response(self, state: GameState) -> None:
+        self.question_index += 1
+        state.examiner_step = self.question_index
+        if self.question_index >= len(EXAMINER_QUESTIONS):
+            self.phase = "photo"
+            self.writer = Typewriter([PHOTO_HINT], chars_per_sec=26)
+        else:
+            self._start_question()
 
     def handle_event(self, event, state: GameState) -> str | None:
         import pygame
@@ -290,53 +329,80 @@ class RoomScene:
         if self.phase == "developing":
             return None
 
-        if self.phase == "question" and self.writer.done:
-            for key, _label, choice_val in CHOICE_LABELS:
+        if self.phase == "question" and self.writer and self.writer.done:
+            q = EXAMINER_QUESTIONS[self.question_index]
+            for key, label, choice_val in q["choices"]:
                 if event.unicode == key or event.key == getattr(pygame, f"K_{key}"):
                     state.choice_history.append(choice_val)
-                    self.phase = "chosen"
-                    self.response_writer = Typewriter(
-                        [EXAMINER_LINES[1], "", ROOM_HINT], chars_per_sec=26
+                    resp = generate_examiner_response(
+                        scene_context=f"voight-kampff question {self.question_index + 1} of 3",
+                        player_choice=label,
+                        question_index=self.question_index,
                     )
+                    lines = [f'"{resp["text"]}"']
+                    if self.question_index + 1 < len(DEJA_VU_LINES):
+                        deja = DEJA_VU_LINES[self.question_index + 1]
+                        if deja:
+                            lines.append(deja)
+                    self.phase = "response"
+                    self.response_writer = Typewriter(lines, chars_per_sec=26)
                     return None
 
-        if self.phase == "chosen" and self.response_writer and self.response_writer.done:
+        if self.phase == "response" and self.response_writer and self.response_writer.done:
+            if event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                self._advance_after_response(state)
+                return None
+
+        if self.phase == "photo" and self.writer and self.writer.done:
             if event.key in (pygame.K_e, pygame.K_RETURN, pygame.K_SPACE):
                 self.phase = "developing"
                 self.develop_writer = Typewriter(
-                    ["the photo develops...", "listening for which timeline survives..."],
+                    [
+                        "the photo develops...",
+                        "three versions fight for the frame...",
+                        "listening for which timeline survives...",
+                    ],
                     chars_per_sec=18,
                 )
                 self.pending_collapse = True
-                self.collapse_delay = 0.8
+                self.collapse_delay = 1.0
                 return None
 
         if event.key in (pygame.K_RETURN, pygame.K_SPACE):
-            if not self.writer.done:
+            if self.writer and not self.writer.done:
                 self.writer.skip()
             elif self.response_writer and not self.response_writer.done:
                 self.response_writer.skip()
         return None
 
     def draw(self, canvas, mono, serif, rain, flicker: bool) -> None:
-        glitch = (self.frame // 8) if self.phase != "developing" else (self.frame // 2)
-        draw_room(canvas, glitch)
-        draw_timeline_hud(canvas, mono, 1 if self.phase == "developing" else (2 if self.phase == "chosen" else 3))
+        weights = getattr(self, "_last_weights", (0.33, 0.33, 0.34))
+        photo_phase = self.phase in {"photo", "developing"}
+        draw_room(canvas, self.frame, weights, photo_phase=photo_phase)
+        draw_timeline_hud(canvas, mono, 1 if self.phase == "developing" else 3)
         rain.draw(canvas)
 
         lines: list[str] = []
         if self.phase == "developing" and self.develop_writer:
             lines = self.develop_writer.visible_text()
-        elif self.phase == "question":
+        elif self.phase == "photo" and self.writer:
+            lines = list(self.writer.visible_text())
+            if self.writer.done:
+                lines.append("[E] observe the photo")
+        elif self.phase == "question" and self.writer:
             if self.writer.visible_text():
                 lines = ['"' + self.writer.visible_text()[0] + '"']
             if self.writer.done:
-                for key, label, _ in CHOICE_LABELS:
+                q = EXAMINER_QUESTIONS[self.question_index]
+                for key, label, _ in q["choices"]:
                     lines.append(f"[{key}] {label}")
-        elif self.response_writer:
-            lines = self.response_writer.visible_text()
+        elif self.phase == "response" and self.response_writer:
+            visible = self.response_writer.visible_text()
+            lines = list(visible)
+            if self.response_writer.done:
+                lines.append("[space] continue")
 
-        draw_dialogue_box(canvas, mono, serif, lines, y=108)
+        draw_dialogue_box(canvas, mono, serif, lines, y=100, max_lines=6)
 
 
 class ReceiptScene:
@@ -347,6 +413,7 @@ class ReceiptScene:
             "══════════════════════",
             " TIMELINE RENTAL — SLIP",
             "══════════════════════",
+            f" {state.ending_title or 'COLLAPSED TIMELINE'}",
             f" TAPE: {TAPE_NAME}",
             f" {state.receipt_line}",
             f" |ψ⟩ → {state.measured_bitstring}",
@@ -388,5 +455,5 @@ class ReceiptScene:
 
     def draw(self, canvas, mono, serif, rain, flicker: bool) -> None:
         canvas.fill((8, 8, 12))
-        draw_dialogue_box(canvas, mono, serif, self.writer.visible_text(), y=10)
+        draw_dialogue_box(canvas, mono, serif, self.writer.visible_text(), y=8, max_lines=10)
         rain.draw(canvas)
