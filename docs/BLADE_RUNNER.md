@@ -22,27 +22,35 @@
 
 ## v1 playable loop (~15 min)
 
-### Scene 1: The alley
-- Rain. Neon sign flickers: something like **"NEXUS REPAIR"** or **"OFF-WORLD INC."**
-- Player walks right. Cigarette glow in doorway.
-- Enter building.
+### Scene 0: Timeline Rental (hub)
+- CRT static that almost resolves into a face
+- Damaged tape glows on the shelf; clerk one-liners
+- Insert tape → intro crawl
+
+### Scene 1: Intro / alley approach
+- Title crawl: *a tape that keeps forgetting which ending it had*
+- Rain. Neon sign flickers: **"NEXUS REPAIR"**
+- Walking right shifts atmospheric beats (puddles → cigarette doorway)
+- Blood-neon graffiti easter egg
 
 ### Scene 2: The room
-- Table. Photo. Whiskey glass you can't drink.
+- Enter beat: examiner already started
+- Table. Photo in superposition. Whiskey glass you can't drink.
 - NPC: **The Examiner** — gender ambiguous, calm, unsettling
-- Examiners asks 2–3 empathy-test questions (original copy, Voight-Kampff *energy*)
+- Three escalating empathy-test questions (certainty → wasp → phone)
 
 ### Scene 3: The photo (observation event)
-- Interact with photo → **COLLAPSE**
+- Develop sequence — three histories fight for the emulsion
+- Interact → **COLLAPSE** (amber flash)
 - Photo resolves differently per outcome:
   - **A:** A woman you almost remember
   - **B:** An empty street — you were never in the photo
   - **C:** Your face, wrong angle, wrong smile
 
 ### Scene 4: Receipt
-- Return to void / store
-- Multiverse receipt prints
-- Clerk fragment: Ollama one-liner
+- Multiverse return slip prints lost timelines
+- Clerk fragment: Ollama one-liner (or curated fallback)
+- Rent again or return to the store
 
 ---
 

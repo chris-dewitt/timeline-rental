@@ -44,7 +44,21 @@ Playable every week. Atmosphere non-negotiable.
 
 ---
 
-## Week 4 — *Entangled tapes*
+## Week 4 — *Atmosphere pass* ← current
+
+**Goal:** Visual + story polish on the damaged tape loop.
+
+| Task | Done when |
+|------|-----------|
+| Richer alley / store / room neon-noir draw | ✓ layered buildings, CRT ghost-face, lamp cone |
+| Atmospheric story beats while walking | ✓ alley position narration |
+| Stronger examiner arc + choice-aware fallbacks | ✓ certainty → wasp → phone |
+| Room enter beat + longer develop sequence | ✓ |
+| Scanlines, vignette, neon glow, trench silhouette | ✓ |
+
+---
+
+## Week 5 — *Entangled tapes*
 
 **Goal:** Choices echo across sessions.
 
@@ -52,16 +66,16 @@ Playable every week. Atmosphere non-negotiable.
 |------|-----------|
 | Second tape slot (locked or teaser) | Future: Casablanca, Vertigo |
 | Bell-state entanglement — choice in run N affects run N+1 | See docs/QUANTUM.md |
-| Polish: rain, flicker, typewriter, sound | DESIGN.md audit |
+| Sound: rain loop, collapse tone | DESIGN.md audit |
 
 ---
 
-## Week 5+ — Backlog
+## Week 6+ — Backlog
 
 - [ ] Full second tape (Vertigo — spiral timelines)
 - [ ] "Rewind" mechanic — uncollapse at cost
 - [ ] Shared universe lore with Superposition Sessions (easter egg)
-- [ ] CRT shader post-processing
+- [ ] CRT shader post-processing / audio
 
 ---
 

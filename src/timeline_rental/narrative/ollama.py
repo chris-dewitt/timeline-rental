@@ -16,6 +16,9 @@ CLERK_FALLBACKS = [
     "someone returned blade runner at 3:14am. it was still inside when we opened.",
     "the rain in slot 7 is louder than the rain outside. don't ask why.",
     "you've been here before. the store remembers. or a version of you does.",
+    "damaged means the ending keeps changing. we stopped labeling which one is true.",
+    "keep the receipt. the lost timelines don't show up on your bank statement.",
+    "casablanca's still missing. vertigo's been rewinding itself since before you walked in.",
 ]
 
 
@@ -103,6 +106,7 @@ def generate_examiner_response(
     scene_context: str,
     player_choice: str,
     question_index: int,
+    choice_value: int | None = None,
 ) -> dict[str, str | bool]:
     prompt = _load_prompt("examiner.txt").format(
         scene_context=scene_context,
@@ -113,6 +117,16 @@ def generate_examiner_response(
         cleaned = _clean_line(raw, max_len=140)
         if len(cleaned) > 16:
             return {"text": cleaned, "generated": True, "source": "ollama"}
+
+    from timeline_rental.narrative.content import EXAMINER_QUESTIONS
+
+    if 0 <= question_index < len(EXAMINER_QUESTIONS):
+        q = EXAMINER_QUESTIONS[question_index]
+        by_choice = q.get("fallback_responses") or {}
+        if choice_value is not None and choice_value in by_choice:
+            return {"text": by_choice[choice_value], "generated": False, "source": "fallback"}
+        if q.get("fallback_response"):
+            return {"text": q["fallback_response"], "generated": False, "source": "fallback"}
 
     fb = EXAMINER_FALLBACKS[question_index % len(EXAMINER_FALLBACKS)]
     return {"text": fb, "generated": False, "source": "fallback"}

@@ -11,19 +11,25 @@ from timeline_rental.game.render import (
     draw_neon_sign,
     draw_player,
     draw_room,
+    draw_scanlines,
     draw_store,
     draw_timeline_hud,
+    draw_vignette,
     wrap_text,
 )
 from timeline_rental.game.run_reset import reset_run
 from timeline_rental.game.state import GameState
 from timeline_rental.narrative.content import (
+    ALLEY_BEATS,
     ALLEY_HINT,
     DEJA_VU_LINES,
     EXAMINER_QUESTIONS,
     INTRO_LINES,
     OUTCOME_BUNDLES,
+    PHOTO_DEVELOP_LINES,
     PHOTO_HINT,
+    PHOTO_HINT_PROMPT,
+    ROOM_ENTER_LINES,
     SESSIONS_GRAFFITI,
 )
 from timeline_rental.narrative.ollama import (
@@ -104,6 +110,8 @@ class StoreScene:
     def draw(self, canvas, mono, serif, rain, flicker: bool) -> None:
         draw_store(canvas, mono, self.frame, flicker)
         rain.draw(canvas)
+        draw_scanlines(canvas)
+        draw_vignette(canvas, strength=70)
 
         if self.gallery_detail:
             self._draw_gallery_detail(canvas, mono, serif)
@@ -157,8 +165,10 @@ class IntroScene:
 
     def __init__(self) -> None:
         self.writer = Typewriter(INTRO_LINES, chars_per_sec=22)
+        self.frame = 0
 
     def update(self, dt: float, state: GameState) -> str | None:
+        self.frame += 1
         self.writer.update(dt)
         if self.writer.done:
             return "alley"
@@ -173,10 +183,13 @@ class IntroScene:
         return None
 
     def draw(self, canvas, mono, serif, rain, flicker: bool) -> None:
-        draw_alley(canvas)
+        draw_alley(canvas, frame=self.frame)
         rain.draw(canvas)
+        draw_neon_sign(canvas, mono, "NEXUS REPAIR", flicker)
         draw_timeline_hud(canvas, mono, 3)
-        draw_dialogue_box(canvas, mono, serif, self.writer.visible_text(), y=60)
+        draw_scanlines(canvas)
+        draw_vignette(canvas)
+        draw_dialogue_box(canvas, mono, serif, self.writer.visible_text(), y=60, max_lines=8)
 
 
 class AlleyScene:
@@ -185,9 +198,20 @@ class AlleyScene:
     def __init__(self) -> None:
         self.player_x = 24
         self.player_y = 132
+        self.frame = 0
+        self._beat_key = ALLEY_BEATS[0][2]
         self.writer = Typewriter([ALLEY_HINT], chars_per_sec=40)
 
+    def _refresh_beat(self) -> None:
+        for lo, hi, line in ALLEY_BEATS:
+            if lo <= self.player_x < hi:
+                if line != self._beat_key:
+                    self._beat_key = line
+                    self.writer = Typewriter([line, ALLEY_HINT], chars_per_sec=36)
+                return
+
     def update(self, dt: float, state: GameState) -> str | None:
+        self.frame += 1
         self.writer.update(dt)
         return None
 
@@ -198,33 +222,33 @@ class AlleyScene:
             return None
         if event.key == pygame.K_LEFT:
             self.player_x = max(8, self.player_x - 4)
+            self._refresh_beat()
         elif event.key == pygame.K_RIGHT:
             self.player_x = min(INTERNAL_W - 12, self.player_x + 4)
+            self._refresh_beat()
         elif event.key in (pygame.K_e, pygame.K_UP):
             if self.player_x > 250:
                 return "room"
         return None
 
     def draw(self, canvas, mono, serif, rain, flicker: bool) -> None:
-        import pygame
-
-        draw_alley(canvas, SESSIONS_GRAFFITI)
+        draw_alley(canvas, SESSIONS_GRAFFITI, frame=self.frame)
         draw_neon_sign(canvas, mono, "NEXUS REPAIR", flicker)
         draw_timeline_hud(canvas, mono, 3)
-        pygame.draw.rect(canvas, (30, 40, 55), (270, 90, 30, 50))
-        pygame.draw.rect(canvas, (0, 80, 90), (278, 110, 14, 28))
-        draw_player(canvas, self.player_x, self.player_y)
+        draw_player(canvas, self.player_x, self.player_y, frame=self.frame)
         rain.draw(canvas)
-        draw_dialogue_box(canvas, mono, serif, self.writer.visible_text(), y=148)
+        draw_scanlines(canvas)
+        draw_vignette(canvas)
+        draw_dialogue_box(canvas, mono, serif, self.writer.visible_text(), y=148, max_lines=3)
 
 
 class RoomScene:
     name = "room"
 
     def __init__(self) -> None:
-        self.phase = "question"
+        self.phase = "enter"
         self.question_index = 0
-        self.writer: Typewriter | None = None
+        self.writer: Typewriter | None = Typewriter(ROOM_ENTER_LINES, chars_per_sec=24)
         self.response_writer: Typewriter | None = None
         self.develop_writer: Typewriter | None = None
         self.frame = 0
@@ -232,7 +256,6 @@ class RoomScene:
         self.collapse_delay = 0.0
         self.initialized = False
         self._last_weights = (0.33, 0.33, 0.34)
-        self._start_question()
 
     def _start_question(self) -> None:
         q = EXAMINER_QUESTIONS[self.question_index]
@@ -329,6 +352,11 @@ class RoomScene:
         if self.phase == "developing":
             return None
 
+        if self.phase == "enter" and self.writer and self.writer.done:
+            if event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                self._start_question()
+                return None
+
         if self.phase == "question" and self.writer and self.writer.done:
             q = EXAMINER_QUESTIONS[self.question_index]
             for key, label, choice_val in q["choices"]:
@@ -338,6 +366,7 @@ class RoomScene:
                         scene_context=f"voight-kampff question {self.question_index + 1} of 3",
                         player_choice=label,
                         question_index=self.question_index,
+                        choice_value=choice_val,
                     )
                     lines = [f'"{resp["text"]}"']
                     if self.question_index + 1 < len(DEJA_VU_LINES):
@@ -356,16 +385,9 @@ class RoomScene:
         if self.phase == "photo" and self.writer and self.writer.done:
             if event.key in (pygame.K_e, pygame.K_RETURN, pygame.K_SPACE):
                 self.phase = "developing"
-                self.develop_writer = Typewriter(
-                    [
-                        "the photo develops...",
-                        "three versions fight for the frame...",
-                        "listening for which timeline survives...",
-                    ],
-                    chars_per_sec=18,
-                )
+                self.develop_writer = Typewriter(PHOTO_DEVELOP_LINES, chars_per_sec=18)
                 self.pending_collapse = True
-                self.collapse_delay = 1.0
+                self.collapse_delay = 2.2
                 return None
 
         if event.key in (pygame.K_RETURN, pygame.K_SPACE):
@@ -381,28 +403,43 @@ class RoomScene:
         draw_room(canvas, self.frame, weights, photo_phase=photo_phase)
         draw_timeline_hud(canvas, mono, 1 if self.phase == "developing" else 3)
         rain.draw(canvas)
+        draw_scanlines(canvas)
+        draw_vignette(canvas, strength=100)
 
         lines: list[str] = []
-        if self.phase == "developing" and self.develop_writer:
+        if self.phase == "enter" and self.writer:
+            lines = list(self.writer.visible_text())
+            if self.writer.done:
+                lines.append("[space] sit for the test")
+        elif self.phase == "developing" and self.develop_writer:
             lines = self.develop_writer.visible_text()
         elif self.phase == "photo" and self.writer:
             lines = list(self.writer.visible_text())
             if self.writer.done:
-                lines.append("[E] observe the photo")
+                lines = [PHOTO_HINT, PHOTO_HINT_PROMPT]
         elif self.phase == "question" and self.writer:
-            if self.writer.visible_text():
-                lines = ['"' + self.writer.visible_text()[0] + '"']
+            qtext = EXAMINER_QUESTIONS[self.question_index]["question"]
             if self.writer.done:
+                wrapped = wrap_text(qtext, 40)
+                lines = ['"' + wrapped[0]]
+                for extra in wrapped[1:]:
+                    lines.append(extra)
+                if lines:
+                    lines[-1] = lines[-1] + '"'
                 q = EXAMINER_QUESTIONS[self.question_index]
                 for key, label, _ in q["choices"]:
                     lines.append(f"[{key}] {label}")
+            else:
+                visible = self.writer.visible_text()
+                if visible:
+                    lines = ['"' + visible[0][:42]]
         elif self.phase == "response" and self.response_writer:
             visible = self.response_writer.visible_text()
             lines = list(visible)
             if self.response_writer.done:
                 lines.append("[space] continue")
 
-        draw_dialogue_box(canvas, mono, serif, lines, y=100, max_lines=6)
+        draw_dialogue_box(canvas, mono, serif, lines, y=100, max_lines=7)
 
 
 class ReceiptScene:
@@ -421,7 +458,7 @@ class ReceiptScene:
             f" PHOTO: {state.photo_label}",
             "",
         ]
-        lines.extend(wrap_text(state.narration, 38)[:4])
+        lines.extend(wrap_text(state.narration, 38)[:5])
         lines.extend(["", " LOST:"])
         for lost in state.lost_timelines:
             lines.append(f"  — {lost}")
@@ -431,8 +468,10 @@ class ReceiptScene:
         lines.extend(["", f" ({src} narration)", "", "ENTER — return to store"])
         lines.extend([" R — rent again   Q — quit"])
         self.writer = Typewriter(lines, chars_per_sec=30)
+        self.frame = 0
 
     def update(self, dt: float, state: GameState) -> str | None:
+        self.frame += 1
         self.writer.update(dt)
         return None
 
@@ -454,6 +493,14 @@ class ReceiptScene:
         return None
 
     def draw(self, canvas, mono, serif, rain, flicker: bool) -> None:
+        import pygame
+
         canvas.fill((8, 8, 12))
-        draw_dialogue_box(canvas, mono, serif, self.writer.visible_text(), y=8, max_lines=10)
+        pulse = 20 + int(12 * abs(((self.frame % 60) / 30) - 1))
+        glow = pygame.Surface(canvas.get_size(), pygame.SRCALPHA)
+        glow.fill((255, 154, 60, pulse))
+        canvas.blit(glow, (0, 0))
+        draw_dialogue_box(canvas, mono, serif, self.writer.visible_text(), y=8, max_lines=12)
         rain.draw(canvas)
+        draw_scanlines(canvas)
+        draw_vignette(canvas, strength=80)
